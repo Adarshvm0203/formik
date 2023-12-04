@@ -1,0 +1,217 @@
+import React, { useState } from "react";
+import { Formik, Field, Form, ErrorMessage } from "formik";
+import * as Yup from "yup";
+import ReCAPTCHA from "react-google-recaptcha";
+
+const initialValues = {
+  textInput: "",
+  passwordInput: "",
+  emailInput: "",
+  checkboxInput: false,
+  radioInput: "",
+  selectInput: "",
+  checkboxGroup: [], // Initial value for the checkbox group
+  imageInput: null, // Initial value for the image input
+};
+
+const validationSchema = Yup.object({
+  textInput: Yup.string().required("Required"),
+  passwordInput: Yup.string().required("Required"),
+  emailInput: Yup.string().email("Invalid email address").required("Required"),
+  checkboxInput: Yup.boolean().oneOf(
+    [true],
+    "Must accept terms and conditions"
+  ),
+  radioInput: Yup.string().required("Required"),
+  selectInput: Yup.string().required("Required"),
+  checkboxGroup: Yup.array().min(1, "Please select at least one option"),
+  imageInput: Yup.mixed().required("Image is required"),
+});
+
+const onSubmit = async (values, { setSubmitting, resetForm }) => {
+  try {
+    // Include the reCAPTCHA value in the form data
+    const formData = { ...values, recaptcha: values.ADARSH };
+
+    // Simulate an asynchronous submission (e.g., API request)
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Handle form submission logic here
+    console.log("Form data submitted:", formData);
+
+    // Reset the form after submission
+    resetForm();
+
+    // Set submitting state to false after completion
+    setSubmitting(false);
+  } catch (error) {
+    console.error("Form submission error:", error);
+    // Handle any submission errors here
+    setSubmitting(false);
+  }
+};
+
+const MyForm = () => {
+  const [capVal, setCapVal] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const options = [
+    { value: "option1", label: "Option 1" },
+    { value: "option2", label: "Option 2" },
+  ];
+
+  return (
+    <Formik
+      initialValues={initialValues}
+      validationSchema={validationSchema}
+      onSubmit={onSubmit}
+    >
+      {({ isSubmitting, isValid, dirty, resetForm, setFieldValue, values }) => (
+        <Form>
+          <div>
+            <label htmlFor="textInput">Text Input:</label>
+            <Field type="text" id="textInput" name="textInput" />
+            <ErrorMessage name="textInput" component="div" />
+          </div>
+
+          <div>
+            <label htmlFor="passwordInput">Password Input:</label>
+            <Field type="password" id="passwordInput" name="passwordInput" />
+            <ErrorMessage name="passwordInput" component="div" />
+          </div>
+          <div>
+            <label>Checkbox Group:</label>
+            {options.map((option) => (
+              <div key={option.value}>
+                <label>
+                  <Field
+                    type="checkbox"
+                    name="checkboxGroup"
+                    value={option.value}
+                    checked={values.checkboxGroup.includes(option.value)}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      if (isChecked) {
+                        setFieldValue("checkboxGroup", [
+                          ...values.checkboxGroup,
+                          option.value,
+                        ]);
+                      } else {
+                        setFieldValue(
+                          "checkboxGroup",
+                          values.checkboxGroup.filter((v) => v !== option.value)
+                        );
+                      }
+                    }}
+                  />
+                  {option.label}
+                </label>
+              </div>
+            ))}
+            <ErrorMessage name="checkboxGroup" component="div" />
+          </div>
+
+          <div>
+            <label htmlFor="emailInput">Email Input:</label>
+            <Field type="email" id="emailInput" name="emailInput" />
+            <ErrorMessage name="emailInput" component="div" />
+          </div>
+
+          <div>
+            <label htmlFor="imageInput">Image Input:</label>
+            <Field
+              type="file"
+              id="imageInput"
+              name="imageInput"
+              render={({ field, form }) => (
+                <>
+                  <input
+                    type="file"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files[0];
+                      form.setFieldValue("imageInput", file);
+                      setSelectedImage(URL.createObjectURL(file));
+                    }}
+                    onBlur={() => form.setFieldTouched("imageInput", true)}
+                  />
+                </>
+              )}
+            />
+            <ErrorMessage name="imageInput" component="div" />
+          </div>
+
+          {/* Display the selected image */}
+          {selectedImage && (
+            <div>
+              <label>Selected Image:</label>
+              <img
+                src={selectedImage}
+                alt="Selected"
+                style={{ maxWidth: "100%", maxHeight: "200px" }}
+              />
+            </div>
+          )}
+
+          <div>
+            <label>
+              <Field type="radio" name="radioInput" value="option1" />
+              Option 1
+            </label>
+            <label>
+              <Field type="radio" name="radioInput" value="option2" />
+              Option 2
+            </label>
+            <ErrorMessage name="radioInput" component="div" />
+          </div>
+
+          <div>
+            <label htmlFor="selectInput">Select Input:</label>
+            <Field as="select" id="selectInput" name="selectInput">
+              <option value="" label="Select an option" />
+              <option value="option1" label="Option 1" />
+              <option value="option2" label="Option 2" />
+              <option value="option3" label="Option 3" />
+            </Field>
+            <ErrorMessage name="selectInput" component="div" />
+          </div>
+          <div>
+            <label>
+              <Field type="checkbox" name="checkboxInput" />
+              Accept Terms and Conditions
+            </label>
+            <ErrorMessage name="checkboxInput" component="div" />
+          </div>
+          <div>
+            <ReCAPTCHA
+              sitekey="6LdMMxEpAAAAALIjcNRnZ3GeW8VYKYc-YEt1axiP"
+              onChange={(val) => setCapVal(val)}
+            />
+
+            <ErrorMessage name="ADARSH" component="div" />
+          </div>
+          <div>
+            <button
+              type="submit"
+              disabled={isSubmitting || !isValid || !dirty || !capVal}
+            >
+              Submit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setSelectedImage(null);
+                setCapVal(null);
+              }}
+              disabled={!dirty}
+            >
+              Reset
+            </button>
+          </div>
+        </Form>
+      )}
+    </Formik>
+  );
+};
+
+export default MyForm;
